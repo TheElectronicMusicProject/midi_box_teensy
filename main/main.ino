@@ -30,7 +30,8 @@
 /******************************************************************************
  *                        DATA TYPES, CONSTANTS, MACROS                       *
  ******************************************************************************/
-#define SHORT_SYSEX
+#define MIDI_SHORT_SYSEX
+#define MIDI_GENERIC_REALTIME
 
 /******************************************************************************
  *                              STATIC VARIABLES                              *
@@ -48,12 +49,26 @@ static void control_change_cb(uint8_t channel, uint8_t control, uint8_t value);
 static void program_change_cb(uint8_t channel, uint8_t program);
 static void after_touch_channel_cb(uint8_t channel, uint8_t pressure);
 static void pitch_change_cb(uint8_t channel, int pitch);
-#ifdef SHORT_SYSEX
+#ifdef MIDI_SHORT_SYSEX
 static void system_exclusive_cb(byte * p_data, unsigned int length);
 #else
 static void system_exclusive_chunk_cb(const byte * p_data, uint16_t length,
                                       bool last);
-#endif /* SHORT_SYSEX */
+#endif /* MIDI_SHORT_SYSEX */
+static void time_code_quarter_frame_cb(byte data);
+static void song_position_cb(uint16_t beats);
+static void song_select_cb(byte song_number);
+static void tune_request_cb();
+#ifdef MIDI_GENERIC_REALTIME
+static void real_time_system_cb(uint8_t real_time_byte);
+#else
+static void clock_cb();
+static void start_cb();
+static void continue_cb();
+static void stop_cb();
+static void active_sensing_cb();
+static void system_reset_cb();
+#endif /* MIDI_GENERIC_REALTIME */
 
 
 /******************************************************************************
@@ -89,11 +104,25 @@ setup ()
     usbMIDI.setHandleProgramChange(program_change_cb);
     usbMIDI.setHandleAfterTouchChannel(after_touch_channel_cb);
     usbMIDI.setHandlePitchChange(pitch_change_cb);
-#ifdef SHORT_SYSEX
+#ifdef MIDI_SHORT_SYSEX
     usbMIDI.setHandleSystemExclusive(system_exclusive_cb);
 #else
     usbMIDI.setHandleSystemExclusive(system_exclusive_chunk_cb);
-#endif /* SHORT_SYSEX */
+#endif /* MIDI_SHORT_SYSEX */
+    usbMIDI.setHandleTimeCodeQuarterFrame(time_code_quarter_frame_cb);
+    usbMIDI.setHandleSongPosition(song_position_cb);
+    usbMIDI.setHandleSongSelect(song_select_cb);
+    usbMIDI.setHandleTuneRequest(tune_request_cb);
+#ifdef MIDI_GENERIC_REALTIME
+    usbMIDI.setHandleRealTimeSystem(real_time_system_cb);
+#else
+    usbMIDI.setHandleClock(clock_cb);
+    usbMIDI.setHandleStart(start_cb);
+    usbMIDI.setHandleContinue(continue_cb);
+    usbMIDI.setHandleStop(stop_cb);
+    usbMIDI.setHandleActiveSensing(active_sensing_cb);
+    usbMIDI.setHandleSystemReset(system_reset_cb);
+#endif /* MIDI_GENERIC_REALTIME */
 }   /* setup() */
 
 /**
@@ -238,16 +267,16 @@ pitch_change_cb (uint8_t channel, int pitch)
  * @return  Nothing.
  */
 static void
-#ifdef SHORT_SYSEX
+#ifdef MIDI_SHORT_SYSEX
 system_exclusive_cb (byte * p_data, unsigned int length)
 #else
 system_exclusive_chunk_cb (const byte * p_data, uint16_t length, bool last)
-#endif /* SHORT_SYSEX */
+#endif /* MIDI_SHORT_SYSEX */
 {
     Serial.print("SysEx Message: ");
     Serial.print(*p_data, HEX);
 
-#ifndef SHORT_SYSEX
+#ifndef MIDI_SHORT_SYSEX
     if (true == last)
     {
         Serial.println(" (end)");
@@ -260,15 +289,27 @@ system_exclusive_chunk_cb (const byte * p_data, uint16_t length, bool last)
 #else
     Serial.println(" (end)");
 }   /* system_exclusive_cb() */
-#endif /* SHORT_SYSEX */
+#endif /* MIDI_SHORT_SYSEX */
 
+/**
+ * @brief   System Common Time Code Quarter Frame (0xF1) message callback.
+ * @par     Description
+ * Test: amidi -p hw:1,0,0 -S 'F1 0 0'
+ * @return  Nothing.
+ */
 static void
 time_code_quarter_frame_cb (byte data)
 {
+    Serial.println("HERE!!");
     // TBD
 } /* time_code_quarter_frame_cb */
 
-
+/**
+ * @brief   System Common Song Position (0xF2) message callback.
+ * @par     Description
+ * Test: amidi -p hw:1,0,0 -S 'F2 3 0'
+ * @return  Nothing.
+ */
 static void
 song_position_cb (uint16_t beats)
 {
@@ -276,60 +317,119 @@ song_position_cb (uint16_t beats)
     Serial.println(beats);
 } /* song_position_cb */
 
+/**
+ * @brief   System Common Song Select (0xF3) message callback.
+ * @par     Description
+ * Test: amidi -p hw:1,0,0 -S 'F3 12'
+ * @return  Nothing.
+ */
 static void
-song_select_cb (byte songNumber)
+song_select_cb (byte song_number)
 {
     Serial.print("Song Select, song=");
-    Serial.println(songNumber, DEC);
+    Serial.println(song_number, DEC);
 } /* song_select_cb */
 
+/**
+ * @brief   System Common Tune Request (0xF6) message callback.
+ * @par     Description
+ * Test: amidi -p hw:1,0,0 -S 'F6'
+ * Not tested!
+ * @return  Nothing.
+ */
 static void
 tune_request_cb ()
 {
     Serial.println("Tune Request");
 } /* tune_request_cb */
 
+#ifndef MIDI_GENERIC_REALTIME
+/**
+ * @brief   System Real Time Timing Clock (0xF8) message callback.
+ * @par     Description
+ * Test: amidi -p hw:1,0,0 -S 'F8'
+ * @return  Nothing.
+ */
 static void
 clock_cb ()
 {
     Serial.println("Clock");
 } /* clock_cb */
 
+/**
+ * @brief   System Real Time Start (0xFA) message callback.
+ * @par     Description
+ * Test: amidi -p hw:1,0,0 -S 'FA'
+ * @return  Nothing.
+ */
 static void
 start_cb ()
 {
     Serial.println("Start");
 } /* start_cb */
 
+/**
+ * @brief   System Real Time Continue (0xFB) message callback.
+ * @par     Description
+ * Test: amidi -p hw:1,0,0 -S 'FB'
+ * @return  Nothing.
+ */
 static void
 continue_cb ()
 {
     Serial.println("Continue");
 } /* continue_cb */
 
+/**
+ * @brief   System Real Time Stop (0xFC) message callback.
+ * @par     Description
+ * Test: amidi -p hw:1,0,0 -S 'FC'
+ * @return  Nothing.
+ */
 static void
 stop_cb ()
 {
-  Serial.println("Stop");
+    Serial.println("Stop");
 } /* stop_cb */
 
+/**
+ * @brief   System Real Time Active Sense (0xFE) message callback.
+ * @par     Description
+ * Test: amidi -p hw:1,0,0 -S 'FE'
+ * @return  Nothing.
+ */
 static void
 active_sensing_cb ()
 {
-    Serial.println("Actvice Sensing");
+    Serial.println("Active Sensing");
 } /* active_sensing_cb */
 
+/**
+ * @brief   System Real Time System Reset (0xFF) message callback.
+ * @par     Description
+ * Test: amidi -p hw:1,0,0 -S 'FF'
+ * @return  Nothing.
+ */
 static void
 system_reset_cb ()
 {
     Serial.println("System Reset");
 } /* system_reset_cb */
 
+#else
+
+/**
+ * @brief   System Real Time generic handler (0xFx) message callback.
+ * @par     Description
+ * Test: amidi -p hw:1,0,0 -S 'FA'
+ * @return  Nothing.
+ */
 static void
-real_time_system_cb (uint8_t realtimebyte)
+real_time_system_cb (uint8_t real_time_byte)
 {
     Serial.print("Real Time Message, code=");
-    Serial.println(realtimebyte, HEX);
+    Serial.println(real_time_byte, HEX);
 } /* real_time_system_cb */
+#endif /* MIDI_GENERIC_REALTIME */
 
 /*** End of file ***/
