@@ -11,8 +11,8 @@
  * Put here a description.
  */
 
-#ifndef USB_RX_H
-#   define USB_RX_H
+#ifndef USB_MIDI_H
+#   define USB_MIDI_H
 
 /******************************************************************************
  *                              INCLUDE STATEMENS                             *
@@ -52,7 +52,7 @@
 uint8_t usb_rx_init(uint32_t baud);
 uint8_t usb_rx_loop();
 
-#endif /* USB_RX_H */
+#endif /* USB_MIDI_H */
 
 
 /*** End of file ***/

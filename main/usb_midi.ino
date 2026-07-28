@@ -20,7 +20,7 @@
  * 4 - Standard library headers                                               *
  ******************************************************************************/
 
-#include "usb_rx.h"
+#include "usb_midi.h"
 #include <MIDI.h>
 
 
