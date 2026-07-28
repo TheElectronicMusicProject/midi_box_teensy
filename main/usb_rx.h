@@ -1,17 +1,18 @@
 /**
- * @file    main.ino
- *
- * @brief   My MIDI box
- *
+ * @file    usb_rx.h
+ * 
+ * @brief   Useful material for the source file.
+ * 
  * @author  Filippo Graziani (circuitry.passion@gmail.com)
- *
+ * 
  * @date    21/07/2026
- *
+ * 
  * @par     Description
- * Select Teensy 2.0
- * Select Tools-USB type-MIDI
- * test with amidi commands
+ * Put here a description.
  */
+
+#ifndef USB_RX_H
+#   define USB_RX_H
 
 /******************************************************************************
  *                              INCLUDE STATEMENS                             *
@@ -22,60 +23,36 @@
  * 4 - Standard library headers                                               *
  ******************************************************************************/
 
-#include "main.h"
-#include "usb_rx.h"
+#include <stdint.h>
 
 
 /******************************************************************************
- *                        DATA TYPES, CONSTANTS, MACROS                       *
+ *                            PROTOTYPES OR MACROS                            *
  ******************************************************************************/
+
+#undef MIDI_SHORT_SYSEX
+#define MIDI_GENERIC_REALTIME
+ 
 
 /******************************************************************************
- *                              STATIC VARIABLES                              *
+ *                                   #DEFINE                                  *
  ******************************************************************************/
-
-/******************************************************************************
- *                        PRIVATE FUNCTIONS PROTOTYPES                        *
- ******************************************************************************/
-
 
 
 
 /******************************************************************************
- *                           PUBLIC FUNCTION BODIES                           *
+ *                      TYPEDEFS (STRUCTS, ENUMS, UNIONS)                     *
  ******************************************************************************/
 
-/**
- * @brief   Setup function.
- * @par     Description
- * Setting of the Arduino's pins and the serial port.
- * @return  Nothing.
- */
-void
-setup ()
-{
-    usb_rx_init(115200);
-}   /* setup() */
-
-/**
- * @brief   Loop function.
- * @par     Description
- * Reading and printing the temperature and the humidity.
- * @return  Nothing.
- */
-void
-loop ()
-{
-    if (true == usb_rx_loop())
-    {
-        Serial.println("MIDI rx");
-    }
-}   /* loop() */
 
 
 /******************************************************************************
- *                           PRIVATE FUNCTION BODIES                          *
+ *                         PUBLIC FUNCTIONS PROTOTYPES                        *
  ******************************************************************************/
+uint8_t usb_rx_init(uint32_t baud);
+uint8_t usb_rx_loop();
+
+#endif /* USB_RX_H */
 
 
 /*** End of file ***/
