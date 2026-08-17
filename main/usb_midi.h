@@ -39,18 +39,31 @@
  ******************************************************************************/
 
 
-
 /******************************************************************************
  *                      TYPEDEFS (STRUCTS, ENUMS, UNIONS)                     *
  ******************************************************************************/
 
+typedef enum
+{
+	MIDI_NONE,
+	MIDI_NOTE_ON,
+	MIDI_NOTE_OFF,
+} midi_type_t;
+
+typedef struct
+{
+	midi_type_t type;
+	uint8_t data1;
+	uint8_t data2;
+	uint8_t data3;
+} usb_midi_data_t;
 
 
 /******************************************************************************
  *                         PUBLIC FUNCTIONS PROTOTYPES                        *
  ******************************************************************************/
 uint8_t usb_rx_init(uint32_t baud);
-uint8_t usb_rx_loop();
+uint8_t usb_rx_loop(usb_midi_data_t * p_msg);
 
 #endif /* USB_MIDI_H */
 

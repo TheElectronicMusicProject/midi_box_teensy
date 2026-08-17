@@ -32,6 +32,8 @@
  *                              STATIC VARIABLES                              *
  ******************************************************************************/
 
+static usb_midi_data_t g_midi_msg{MIDI_NONE, 0, 0, 0};
+
 /******************************************************************************
  *                        PRIVATE FUNCTIONS PROTOTYPES                        *
  ******************************************************************************/
@@ -133,8 +135,13 @@ usb_rx_init (uint32_t baud)
  * @return  Nothing.
  */
 uint8_t
-usb_rx_loop ()
+usb_rx_loop (usb_midi_data_t * p_msg)
 {
+    p_msg->type = g_midi_msg.type;
+    p_msg->data1 = g_midi_msg.data1;
+    p_msg->data2 = g_midi_msg.data2;
+    p_msg->data3 = g_midi_msg.data3;
+    
     return (usbMIDI.read());
 }   /* usb_rx_loop() */
 
@@ -158,6 +165,10 @@ note_on_cb (uint8_t channel, uint8_t note, uint8_t velocity)
     Serial.print(note, DEC);
     Serial.print(", velocity=");
     Serial.println(velocity, DEC);
+    g_midi_msg.type = MIDI_NOTE_ON;
+    g_midi_msg.data1 = channel;
+    g_midi_msg.data2 = note;
+    g_midi_msg.data3 = velocity;
 }   /* note_on_cb() */
 
 /**
