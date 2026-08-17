@@ -1,5 +1,5 @@
 /**
- * @file    main.ino
+ * @file    usb_midi.ino
  *
  * @brief   My MIDI box
  *
@@ -137,12 +137,13 @@ usb_rx_init (uint32_t baud)
 uint8_t
 usb_rx_loop (usb_midi_data_t * p_msg)
 {
+    bool ret(usbMIDI.read());
     p_msg->type = g_midi_msg.type;
     p_msg->data1 = g_midi_msg.data1;
     p_msg->data2 = g_midi_msg.data2;
     p_msg->data3 = g_midi_msg.data3;
     
-    return (usbMIDI.read());
+    return ret;
 }   /* usb_rx_loop() */
 
 
@@ -186,6 +187,10 @@ note_off_cb (uint8_t channel, uint8_t note, uint8_t velocity)
     Serial.print(note, DEC);
     Serial.print(", velocity=");
     Serial.println(velocity, DEC);
+    g_midi_msg.type = MIDI_NOTE_OFF;
+    g_midi_msg.data1 = channel;
+    g_midi_msg.data2 = note;
+    g_midi_msg.data3 = velocity;
 }   /* note_off_cb() */
 
 /**
@@ -203,6 +208,10 @@ after_touch_poly_cb (uint8_t channel, uint8_t note, uint8_t velocity)
     Serial.print(note, DEC);
     Serial.print(", velocity=");
     Serial.println(velocity, DEC);
+    g_midi_msg.type = MIDI_AFTER_TOUCH_POLY;
+    g_midi_msg.data1 = channel;
+    g_midi_msg.data2 = note;
+    g_midi_msg.data3 = velocity;
 }   /* after_touch_poly_cb() */
 
 /**
@@ -220,6 +229,10 @@ control_change_cb (uint8_t channel, uint8_t control, uint8_t value)
     Serial.print(control, DEC);
     Serial.print(", value=");
     Serial.println(value, DEC);
+    g_midi_msg.type = MIDI_CONTROL_CHANGE;
+    g_midi_msg.data1 = channel;
+    g_midi_msg.data2 = control;
+    g_midi_msg.data3 = value;
 }   /* control_change_cb() */
 
 /**
@@ -235,6 +248,10 @@ program_change_cb (uint8_t channel, uint8_t program)
     Serial.print(channel, DEC);
     Serial.print(", program=");
     Serial.println(program, DEC);
+    g_midi_msg.type = MIDI_PROGRAM_CHANGE;
+    g_midi_msg.data1 = channel;
+    g_midi_msg.data2 = program;
+    g_midi_msg.data3 = 0;
 }   /* program_change_cb() */
 
 /**
@@ -250,6 +267,10 @@ after_touch_channel_cb (uint8_t channel, uint8_t pressure)
     Serial.print(channel, DEC);
     Serial.print(", pressure=");
     Serial.println(pressure, DEC);
+    g_midi_msg.type = MIDI_AFTER_TOUCH_CHANNEL;
+    g_midi_msg.data1 = channel;
+    g_midi_msg.data2 = pressure;
+    g_midi_msg.data3 = 0;
 }   /* after_touch_channel_cb() */
 
 /**
@@ -270,6 +291,10 @@ pitch_change_cb (uint8_t channel, int pitch)
     Serial.print(channel, DEC);
     Serial.print(", pitch=");
     Serial.println(pitch, DEC);
+    g_midi_msg.type = MIDI_PITCH_CHANGE;
+    g_midi_msg.data1 = channel;
+    g_midi_msg.data2 = pitch;
+    g_midi_msg.data3 = 0;
 }   /* pitch_change_cb() */
 
 /**
@@ -294,6 +319,12 @@ system_exclusive_chunk_cb (const byte * p_data, uint16_t length, bool last)
         Serial.print(*(p_data + idx), HEX);
         Serial.print(" ");
     }
+
+    g_midi_msg.type = MIDI_SYSEX;
+    g_midi_msg.data1 = length;
+    g_midi_msg.data2 = last;
+    g_midi_msg.data3 = 0;
+    g_midi_msg.p_data4 = (uint8_t *) p_data;
 
 #ifndef MIDI_SHORT_SYSEX
     if (true == last)
@@ -371,6 +402,11 @@ time_code_quarter_frame_cb (byte data)
         Serial.print("TimeCode: invalid data = ");
         Serial.println(data, HEX);
     }
+
+    g_midi_msg.type = MIDI_SYS_QUARTER;
+    g_midi_msg.data1 = data;
+    g_midi_msg.data2 = 0;
+    g_midi_msg.data3 = 0;
 } /* time_code_quarter_frame_cb */
 
 /**
@@ -384,6 +420,10 @@ song_position_cb (uint16_t beats)
 {
     Serial.print("Song Position, beat=");
     Serial.println(beats);
+    g_midi_msg.type = MIDI_SYS_SONG_POSITION;
+    g_midi_msg.data1 = beats;
+    g_midi_msg.data2 = 0;
+    g_midi_msg.data3 = 0;
 } /* song_position_cb */
 
 /**
@@ -397,6 +437,10 @@ song_select_cb (byte song_number)
 {
     Serial.print("Song Select, song=");
     Serial.println(song_number, DEC);
+    g_midi_msg.type = MIDI_SYS_SONG_SELECT;
+    g_midi_msg.data1 = song_number;
+    g_midi_msg.data2 = 0;
+    g_midi_msg.data3 = 0;
 } /* song_select_cb */
 
 #if 0
@@ -411,6 +455,10 @@ static void
 tune_request_cb ()
 {
     Serial.println("Tune Request");
+    g_midi_msg.type = MIDI_SYS_TUNE_REQUEST;
+    g_midi_msg.data1 = 0;
+    g_midi_msg.data2 = 0;
+    g_midi_msg.data3 = 0;
 } /* tune_request_cb */
 #endif
 
@@ -425,6 +473,10 @@ static void
 clock_cb ()
 {
     Serial.println("Clock");
+    g_midi_msg.type = MIDI_SYS_CLOCK;
+    g_midi_msg.data1 = 0;
+    g_midi_msg.data2 = 0;
+    g_midi_msg.data3 = 0;
 } /* clock_cb */
 
 /**
@@ -437,6 +489,10 @@ static void
 start_cb ()
 {
     Serial.println("Start");
+    g_midi_msg.type = MIDI_SYS_START;
+    g_midi_msg.data1 = 0;
+    g_midi_msg.data2 = 0;
+    g_midi_msg.data3 = 0;
 } /* start_cb */
 
 /**
@@ -449,6 +505,10 @@ static void
 continue_cb ()
 {
     Serial.println("Continue");
+    g_midi_msg.type = MIDI_SYS_CONTINUE;
+    g_midi_msg.data1 = 0;
+    g_midi_msg.data2 = 0;
+    g_midi_msg.data3 = 0;
 } /* continue_cb */
 
 /**
@@ -461,6 +521,10 @@ static void
 stop_cb ()
 {
     Serial.println("Stop");
+    g_midi_msg.type = MIDI_SYS_STOP;
+    g_midi_msg.data1 = 0;
+    g_midi_msg.data2 = 0;
+    g_midi_msg.data3 = 0;
 } /* stop_cb */
 
 /**
@@ -473,6 +537,10 @@ static void
 active_sensing_cb ()
 {
     Serial.println("Active Sensing");
+    g_midi_msg.type = MIDI_SYS_ACTIVE_SENSE;
+    g_midi_msg.data1 = 0;
+    g_midi_msg.data2 = 0;
+    g_midi_msg.data3 = 0;
 } /* active_sensing_cb */
 
 /**
@@ -485,6 +553,10 @@ static void
 system_reset_cb ()
 {
     Serial.println("System Reset");
+    g_midi_msg.type = MIDI_SYS_RESET;
+    g_midi_msg.data1 = 0;
+    g_midi_msg.data2 = 0;
+    g_midi_msg.data3 = 0;
 } /* system_reset_cb */
 
 #else
@@ -500,6 +572,10 @@ real_time_system_cb (uint8_t real_time_byte)
 {
     Serial.print("Real Time Message, code=");
     Serial.println(real_time_byte, HEX);
+    g_midi_msg.type = MIDI_SYS_GENERIC;
+    g_midi_msg.data1 = real_time_byte;
+    g_midi_msg.data2 = 0;
+    g_midi_msg.data3 = 0;
 } /* real_time_system_cb */
 #endif /* MIDI_GENERIC_REALTIME */
 

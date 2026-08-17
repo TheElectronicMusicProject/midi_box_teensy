@@ -1,18 +1,18 @@
 /**
- * @file    usb_midi.h
+ * @file    midi_usb.h
  * 
  * @brief   Useful material for the source file.
  * 
  * @author  Filippo Graziani (circuitry.passion@gmail.com)
  * 
- * @date    21/07/2026
+ * @date    17/08/2026
  * 
  * @par     Description
  * Put here a description.
  */
 
-#ifndef USB_MIDI_H
-#   define USB_MIDI_H
+#ifndef MIDI_USB_H
+#   define MIDI_USB_H
 
 /******************************************************************************
  *                              INCLUDE STATEMENS                             *
@@ -43,47 +43,13 @@
  *                      TYPEDEFS (STRUCTS, ENUMS, UNIONS)                     *
  ******************************************************************************/
 
-typedef enum
-{
-	MIDI_NONE,
-	MIDI_NOTE_ON,
-	MIDI_NOTE_OFF,
-	MIDI_AFTER_TOUCH_POLY,
-	MIDI_CONTROL_CHANGE,
-	MIDI_PROGRAM_CHANGE,
-	MIDI_AFTER_TOUCH_CHANNEL,
-	MIDI_PITCH_CHANGE,
-	MIDI_SYSEX,
-	MIDI_SYS_QUARTER,
-	MIDI_SYS_SONG_POSITION,
-	MIDI_SYS_SONG_SELECT,
-	MIDI_SYS_TUNE_REQUEST,
-	MIDI_SYS_CLOCK,
-	MIDI_SYS_START,
-	MIDI_SYS_CONTINUE,
-	MIDI_SYS_STOP,
-	MIDI_SYS_ACTIVE_SENSE,
-	MIDI_SYS_RESET,
-	MIDI_SYS_GENERIC
-} midi_type_t;
-
-typedef struct
-{
-	midi_type_t type;
-	uint16_t data1;
-	uint16_t data2;
-	uint16_t data3;
-	uint8_t * p_data4;
-} usb_midi_data_t;
-
 
 /******************************************************************************
  *                         PUBLIC FUNCTIONS PROTOTYPES                        *
  ******************************************************************************/
-uint8_t usb_rx_init(uint32_t baud);
-uint8_t usb_rx_loop(usb_midi_data_t * p_msg);
 
-#endif /* USB_MIDI_H */
+
+#endif /* MIDI_USB_H */
 
 
 /*** End of file ***/
