@@ -80,114 +80,242 @@ void
 loop ()
 {
     static uint32_t current_count(0);
+    static state_machine_t state(IDLE);
 
-    if (true == usb_rx_loop(&g_in_msg))
+    switch (state)
     {
-        switch (g_in_msg.type)
-        {
-            case MIDI_NOTE_ON:
-                gh_midi.sendNoteOn(g_in_msg.data2,
-                                   g_in_msg.data3,
-                                   g_in_msg.data1);
-                Serial.println("MIDI rx = " + String(g_in_msg.type));
-            break;
+        case IDLE:
+            if ((millis() - current_count) >= g_led_timer)
+            {
+                digitalWriteFast(LED_BUILTIN, 0);
+            }
 
-            case MIDI_NOTE_OFF:
-                gh_midi.sendNoteOff(g_in_msg.data2,
+            state = CHECK_FROM_USB;
+        break;
+
+        case ERROR:
+            /* Fall through */
+        break;
+
+        case CHECK_FROM_USB:
+            if (true == usb_rx_loop(&g_in_msg))
+            {
+                digitalWriteFast(LED_BUILTIN, 1);
+                current_count = millis();
+        
+                state = FORWARD_FROM_USB;
+            }
+            else
+            {
+                state = IDLE;
+            }
+        break;
+
+        case FORWARD_FROM_USB:
+            switch (g_in_msg.type)
+            {
+                case MIDI_NOTE_ON:
+                    gh_midi.sendNoteOn(g_in_msg.data2,
                                     g_in_msg.data3,
                                     g_in_msg.data1);
-            break;
+                    Serial.println("MIDI rx = " + String(g_in_msg.type));
+                break;
 
-            case MIDI_AFTER_TOUCH_POLY:
-                gh_midi.sendAfterTouch(g_in_msg.data2,
-                                       g_in_msg.data3,
-                                       g_in_msg.data1);
-            break;
+                case MIDI_NOTE_OFF:
+                    gh_midi.sendNoteOff(g_in_msg.data2,
+                                        g_in_msg.data3,
+                                        g_in_msg.data1);
+                break;
 
-            case MIDI_CONTROL_CHANGE:
-                gh_midi.sendControlChange(g_in_msg.data2,
-                                          g_in_msg.data3,
-                                          g_in_msg.data1);
-            break;
+                case MIDI_AFTER_TOUCH_POLY:
+                    gh_midi.sendAfterTouch(g_in_msg.data2,
+                                        g_in_msg.data3,
+                                        g_in_msg.data1);
+                break;
 
-            case MIDI_PROGRAM_CHANGE:
-                gh_midi.sendProgramChange(g_in_msg.data2,
-                                          g_in_msg.data1);
-            break;
+                case MIDI_CONTROL_CHANGE:
+                    gh_midi.sendControlChange(g_in_msg.data2,
+                                            g_in_msg.data3,
+                                            g_in_msg.data1);
+                break;
 
-            case MIDI_AFTER_TOUCH_CHANNEL:
-                gh_midi.sendAfterTouch(g_in_msg.data2,
-                                       g_in_msg.data1);
-            break;
+                case MIDI_PROGRAM_CHANGE:
+                    gh_midi.sendProgramChange(g_in_msg.data2,
+                                            g_in_msg.data1);
+                break;
 
-            case MIDI_PITCH_CHANGE:
-                gh_midi.sendPitchBend((int) g_in_msg.data2,
-                                      g_in_msg.data1);
-            break;
+                case MIDI_AFTER_TOUCH_CHANNEL:
+                    gh_midi.sendAfterTouch(g_in_msg.data2,
+                                        g_in_msg.data1);
+                break;
 
-            case MIDI_SYSEX:
-                gh_midi.sendSysEx(g_in_msg.data1,
-                                  (const byte *) g_in_msg.p_data4);
-            break;
+                case MIDI_PITCH_CHANGE:
+                    gh_midi.sendPitchBend((int) g_in_msg.data2,
+                                        g_in_msg.data1);
+                break;
 
-            case MIDI_SYS_QUARTER:
-                gh_midi.sendTimeCodeQuarterFrame(g_in_msg.data1);
-            break;
+                case MIDI_SYSEX:
+                    gh_midi.sendSysEx(g_in_msg.data1,
+                                    (const byte *) g_in_msg.p_data4);
+                break;
 
-            case MIDI_SYS_SONG_POSITION:
-                gh_midi.sendSongPosition(g_in_msg.data1);
-            break;
+                case MIDI_SYS_QUARTER:
+                    gh_midi.sendTimeCodeQuarterFrame(g_in_msg.data1);
+                break;
 
-            case MIDI_SYS_SONG_SELECT:
-                gh_midi.sendSongSelect(g_in_msg.data1);
-            break;
+                case MIDI_SYS_SONG_POSITION:
+                    gh_midi.sendSongPosition(g_in_msg.data1);
+                break;
 
-            case MIDI_SYS_TUNE_REQUEST:
-                gh_midi.sendTuneRequest();
-            break;
+                case MIDI_SYS_SONG_SELECT:
+                    gh_midi.sendSongSelect(g_in_msg.data1);
+                break;
 
-            case MIDI_SYS_CLOCK:
-                gh_midi.sendClock();
-            break;
+                case MIDI_SYS_TUNE_REQUEST:
+                    gh_midi.sendTuneRequest();
+                break;
 
-            case MIDI_SYS_START:
-                gh_midi.sendStart();
-            break;
+                case MIDI_SYS_CLOCK:
+                    gh_midi.sendClock();
+                break;
 
-            case MIDI_SYS_CONTINUE:
-                gh_midi.sendContinue();
-            break;
+                case MIDI_SYS_START:
+                    gh_midi.sendStart();
+                break;
 
-            case MIDI_SYS_STOP:
-                gh_midi.sendStop();
-            break;
+                case MIDI_SYS_CONTINUE:
+                    gh_midi.sendContinue();
+                break;
 
-            case MIDI_SYS_ACTIVE_SENSE:
-                gh_midi.sendActiveSensing();
-            break;
+                case MIDI_SYS_STOP:
+                    gh_midi.sendStop();
+                break;
 
-            case MIDI_SYS_RESET:
-                gh_midi.sendSystemReset();
-            break;
+                case MIDI_SYS_ACTIVE_SENSE:
+                    gh_midi.sendActiveSensing();
+                break;
 
-            case MIDI_SYS_GENERIC:
-                gh_midi.sendRealTime((midi::MidiType) g_in_msg.data1);
-            break;
-            
-            case MIDI_NONE:
-                /* Fall through */
-            default:
-                Serial.print("Unsopported message" + String(g_in_msg.type) + "\n");
-            break;
-        }
-        
-        digitalWriteFast(LED_BUILTIN, 1);
-        current_count = millis();
-    }
+                case MIDI_SYS_RESET:
+                    gh_midi.sendSystemReset();
+                break;
 
-    if ((millis() - current_count) >= g_led_timer)
-    {
-        digitalWriteFast(LED_BUILTIN, 0);
+                case MIDI_SYS_GENERIC:
+                    gh_midi.sendRealTime((midi::MidiType) g_in_msg.data1);
+                break;
+                
+                case MIDI_NONE:
+                    /* Fall through */
+                default:
+                    Serial.print("Unsopported message" + String(g_in_msg.type) + "\n");
+                break;
+            }
+
+            state = IDLE;
+        break;
+
+        case CHECK_FROM_MIDI:
+            if (true == gh_midi.read())
+            {
+                switch (gh_midi.getType())
+                {
+                    case midi::NoteOn:
+                        Serial.println(String("Note On:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
+                    break;
+
+                    case midi::NoteOff:
+                        Serial.println(String("Note Off:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
+                    break;
+
+                    case midi::Clock:
+                        Serial.println(String("Note Clock:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
+                    break;
+
+                    case midi::Start:
+                        Serial.println(String("Note Start:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
+                    break;
+
+                    case midi::Tick:
+                        Serial.println(String("Note Tick:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
+                    break;
+
+                    case midi::Continue:
+                        Serial.println(String("Note Continue:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
+                    break;
+
+                    case midi::Stop:
+                        Serial.println(String("Note Stop:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
+                    break;
+
+                    case midi::ActiveSensing:
+                        Serial.println(String("Note ActiveSensing:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
+                    break;
+
+                    case midi::ControlChange:
+                        Serial.println(String("Note ControlChange:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
+                    break;
+
+                    case midi::PitchBend:
+                        Serial.println(String("Note PitchBend:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
+                    break;
+
+                    case midi::AfterTouchPoly:
+                        Serial.println(String("Note AfterTouchPoly:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
+                    break;
+
+                    case midi::AfterTouchChannel:
+                        Serial.println(String("Note AfterTouchChannel:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
+                    break;
+
+                    case midi::ProgramChange:
+                        Serial.println(String("Note ProgramChange:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
+                    break;
+
+                    case midi::SystemExclusive:
+                        Serial.println(String("Note SystemExclusive:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
+                    break;
+
+                    case midi::TimeCodeQuarterFrame:
+                        Serial.println(String("Note TimeCodeQuarterFrame:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
+                    break;
+
+                    case midi::SongPosition:
+                        Serial.println(String("Note SongPosition:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
+                    break;
+
+                    case midi::SongSelect:
+                        Serial.println(String("Note SongSelect:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
+                    break;
+
+                    case midi::TuneRequest:
+                        Serial.println(String("Note TuneRequest:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
+                    break;
+
+                    case midi::SystemReset:
+                        Serial.println(String("Note SystemReset:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
+                    break;
+
+                    case midi::InvalidType:
+                        /* Fall through */
+                    default:
+                        Serial.print("Unsopported message \n");
+                    break;
+                }
+
+                state = FORWARD_FROM_MIDI;
+            }
+            else
+            {
+                state = IDLE;
+            }
+        break;
+
+        case FORWARD_FROM_MIDI:
+            state = IDLE;
+        break;
+
+        default:
+            state = ERROR;
+        break;
     }
 }   /* loop() */
 

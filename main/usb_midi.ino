@@ -129,9 +129,9 @@ usb_rx_init (uint32_t baud)
 }   /* usb_rx_init() */
 
 /**
- * @brief   Loop function.
+ * @brief   USB read function.
  * @par     Description
- * Reading and printing the temperature and the humidity.
+ * Reading and saving the USB MIDI data.
  * @return  Nothing.
  */
 uint8_t

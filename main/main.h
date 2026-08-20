@@ -41,7 +41,15 @@
  *                      TYPEDEFS (STRUCTS, ENUMS, UNIONS)                     *
  ******************************************************************************/
 
-
+typedef enum state_machine
+{
+	IDLE,
+	ERROR,
+	CHECK_FROM_USB,
+	FORWARD_FROM_USB,
+	CHECK_FROM_MIDI,
+	FORWARD_FROM_MIDI
+} state_machine_t;
 
 /******************************************************************************
  *                         PUBLIC FUNCTIONS PROTOTYPES                        *
