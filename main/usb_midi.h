@@ -70,9 +70,9 @@ typedef enum
 typedef struct
 {
 	midi_type_t type;
-	uint16_t data1;
-	uint16_t data2;
-	uint16_t data3;
+	uint32_t data1;
+	uint32_t data2;
+	uint32_t data3;
 	uint8_t * p_data4;
 } usb_midi_data_t;
 
@@ -80,8 +80,10 @@ typedef struct
 /******************************************************************************
  *                         PUBLIC FUNCTIONS PROTOTYPES                        *
  ******************************************************************************/
-uint8_t usb_rx_init(uint32_t baud);
-uint8_t usb_rx_loop(usb_midi_data_t * p_msg);
+void midi_init(uint8_t midi_channel);
+uint8_t usb_rx_init();
+bool usb_rx_loop(usb_midi_data_t * p_msg);
+bool usb_tx_loop(usb_midi_data_t msg);
 
 #endif /* USB_MIDI_H */
 

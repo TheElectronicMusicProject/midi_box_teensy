@@ -32,6 +32,9 @@
  *                              STATIC VARIABLES                              *
  ******************************************************************************/
 
+// Serial1 is RX on 7 and TX on 8.
+//
+static MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, gh_midi);
 static usb_midi_data_t g_midi_msg{MIDI_NONE, 0, 0, 0};
 
 /******************************************************************************
@@ -68,6 +71,7 @@ static void stop_cb();
 static void active_sensing_cb();
 static void system_reset_cb();
 #endif /* MIDI_GENERIC_REALTIME */
+static void midi_note_on_cb(byte channel, byte note, byte velocity);
 
 
 /******************************************************************************
@@ -75,27 +79,32 @@ static void system_reset_cb();
  ******************************************************************************/
 
 /**
- * @brief   Setup function.
+ * @brief   MIDI init function.
  * @par     Description
- * Setting of the Arduino's pins and the serial port.
+ * Setup for the serial MIDI interface with handlers.
+ * @param[in] midi_channel  Selected MIDI channel (MIDI_CHANNEL_OMNI for
+ *                          broadcast).
  * @return  Nothing.
  */
-uint8_t
-usb_rx_init (uint32_t baud)
+void
+midi_init (uint8_t midi_channel)
 {
-    // Setup the MIDI protocol speed.
-    //
-    Serial.begin(baud);
+    gh_midi.setHandleNoteOn(midi_note_on_cb);
 
-    if (false == Serial)
-    {
-        /* Firmware waiting for connection... */
-    }
+    gh_midi.begin(midi_channel);
+}   /* midi_init() */
 
-    Serial.println("STARTED!");
-
-    // Set the handlers for MIDI.
-    //
+/**
+ * @brief   USB init function.
+ * @par     Description
+ * Handlers for every MIDI event received from USB.
+ * Macro MIDI_SHORT_SYSEX is useful to select between the single SYSEX
+ * management and the chunk handling.
+ * @return  Always 0.
+ */
+uint8_t
+usb_rx_init ()
+{
     usbMIDI.setHandleNoteOn(note_on_cb);
     usbMIDI.setHandleNoteOff(note_off_cb);
     usbMIDI.setHandleAfterTouchPoly(after_touch_poly_cb);
@@ -129,22 +138,146 @@ usb_rx_init (uint32_t baud)
 }   /* usb_rx_init() */
 
 /**
- * @brief   USB read function.
+ * @brief   USB read function (input messages from USB).
  * @par     Description
  * Reading and saving the USB MIDI data.
- * @return  Nothing.
+ * @param[out] p_msg    Pointer to the struct which will contain the type of
+ *                      message and three 32 bits of data. It is populated
+ *                      if a message is detected only.
+ * @return  true if a message has been received, false otherwise.
  */
-uint8_t
+bool
 usb_rx_loop (usb_midi_data_t * p_msg)
 {
     bool ret(usbMIDI.read());
-    p_msg->type = g_midi_msg.type;
-    p_msg->data1 = g_midi_msg.data1;
-    p_msg->data2 = g_midi_msg.data2;
-    p_msg->data3 = g_midi_msg.data3;
-    
+
+    if (true == ret)
+    {
+        p_msg->type = g_midi_msg.type;
+        p_msg->data1 = g_midi_msg.data1;
+        p_msg->data2 = g_midi_msg.data2;
+        p_msg->data3 = g_midi_msg.data3;
+    }
+
     return ret;
 }   /* usb_rx_loop() */
+
+/**
+ * @brief   USB write function (forward messages from USB).
+ * @par     Description
+ * Transmitting the USB MIDI data.
+ * @note    See each handler description for the data usage.
+ * @param[in] msg   Struct message which contains the type of message and three
+ *                  32 bits of data (populated if the message needs them,
+ *                  ignored otherwise).
+ * @return  true if the type of sent message is managed, false otherwise.
+ */
+bool
+usb_tx_loop (usb_midi_data_t msg)
+{
+    bool ret(true);
+
+    switch (msg.type)
+    {
+        case MIDI_NOTE_ON:
+            gh_midi.sendNoteOn(msg.data2,
+                               msg.data3,
+                               msg.data1);
+            Serial.println("MIDI rx = " + String(msg.type));
+        break;
+
+        case MIDI_NOTE_OFF:
+            gh_midi.sendNoteOff(msg.data2,
+                                msg.data3,
+                                msg.data1);
+        break;
+
+        case MIDI_AFTER_TOUCH_POLY:
+            gh_midi.sendAfterTouch(msg.data2,
+                                   msg.data3,
+                                   msg.data1);
+        break;
+
+        case MIDI_CONTROL_CHANGE:
+            gh_midi.sendControlChange(msg.data2,
+                                      msg.data3,
+                                      msg.data1);
+        break;
+
+        case MIDI_PROGRAM_CHANGE:
+            gh_midi.sendProgramChange(msg.data2,
+                                      msg.data1);
+        break;
+
+        case MIDI_AFTER_TOUCH_CHANNEL:
+            gh_midi.sendAfterTouch(msg.data2,
+                                msg.data1);
+        break;
+
+        case MIDI_PITCH_CHANGE:
+            gh_midi.sendPitchBend((int) msg.data2,
+                                  msg.data1);
+        break;
+
+        case MIDI_SYSEX:
+            gh_midi.sendSysEx(msg.data1,
+                              (const byte *) msg.p_data4);
+        break;
+
+        case MIDI_SYS_QUARTER:
+            gh_midi.sendTimeCodeQuarterFrame(msg.data1);
+        break;
+
+        case MIDI_SYS_SONG_POSITION:
+            gh_midi.sendSongPosition(msg.data1);
+        break;
+
+        case MIDI_SYS_SONG_SELECT:
+            gh_midi.sendSongSelect(msg.data1);
+        break;
+
+        case MIDI_SYS_TUNE_REQUEST:
+            gh_midi.sendTuneRequest();
+        break;
+
+        case MIDI_SYS_CLOCK:
+            gh_midi.sendClock();
+        break;
+
+        case MIDI_SYS_START:
+            gh_midi.sendStart();
+        break;
+
+        case MIDI_SYS_CONTINUE:
+            gh_midi.sendContinue();
+        break;
+
+        case MIDI_SYS_STOP:
+            gh_midi.sendStop();
+        break;
+
+        case MIDI_SYS_ACTIVE_SENSE:
+            gh_midi.sendActiveSensing();
+        break;
+
+        case MIDI_SYS_RESET:
+            gh_midi.sendSystemReset();
+        break;
+
+        case MIDI_SYS_GENERIC:
+            gh_midi.sendRealTime((midi::MidiType) msg.data1);
+        break;
+        
+        case MIDI_NONE:
+            /* Fall through */
+        default:
+            Serial.print("Unsupported message" + String(msg.type) + "\n");
+            ret = false;
+        break;
+    }
+
+    return ret;
+}
 
 
 /******************************************************************************
@@ -155,6 +288,9 @@ usb_rx_loop (usb_midi_data_t * p_msg)
  * @brief   Note On (0xA) message callback.
  * @par     Description
  * Test: amidi -p hw:1,0,0 -S '91 1 1'
+ * @param[in] channel   Selected channel (1-16).
+ * @param[in] note      Selected note (0-127).
+ * @param[in] velocity  Selected velocity (0-127).
  * @return  Nothing.
  */
 static void
@@ -176,6 +312,9 @@ note_on_cb (uint8_t channel, uint8_t note, uint8_t velocity)
  * @brief   Note Off (0x8) message callback.
  * @par     Description
  * Test: amidi -p hw:1,0,0 -S '80 1 1'
+ * @param[in] channel   Selected channel (1-16).
+ * @param[in] note      Selected note (0-127).
+ * @param[in] velocity  Selected velocity (0-127).
  * @return  Nothing.
  */
 static void
@@ -197,6 +336,9 @@ note_off_cb (uint8_t channel, uint8_t note, uint8_t velocity)
  * @brief   Polyphonic pressure (0xA) message callback.
  * @par     Description
  * Test: amidi -p hw:1,0,0 -S 'A0 1 1'
+ * @param[in] channel   Selected channel (1-16).
+ * @param[in] note      Selected note (0-127).
+ * @param[in] velocity  Selected velocity (0-127).
  * @return  Nothing.
  */
 static void
@@ -218,6 +360,9 @@ after_touch_poly_cb (uint8_t channel, uint8_t note, uint8_t velocity)
  * @brief   Control change (0xB) message callback.
  * @par     Description
  * Test: amidi -p hw:1,0,0 -S 'B0 1 1'
+ * @param[in] channel   Selected channel (1-16).
+ * @param[in] control   Selected controller (0-127).
+ * @param[in] value     Selected value (0-127).
  * @return  Nothing.
  */
 static void
@@ -239,6 +384,8 @@ control_change_cb (uint8_t channel, uint8_t control, uint8_t value)
  * @brief   Program change (0xC) message callback.
  * @par     Description
  * Test: amidi -p hw:1,0,0 -S 'C0 1'
+ * @param[in] channel   Selected channel (1-16).
+ * @param[in] program   Selected patch number (0-127).
  * @return  Nothing.
  */
 static void
@@ -258,6 +405,8 @@ program_change_cb (uint8_t channel, uint8_t program)
  * @brief   Channel Pressure (0xD) message callback.
  * @par     Description
  * Test: amidi -p hw:1,0,0 -S 'D0 1'
+ * @param[in] channel   Selected channel (1-16).
+ * @param[in] pressure  Selected pressure value (0-127).
  * @return  Nothing.
  */
 static void
@@ -282,6 +431,9 @@ after_touch_channel_cb (uint8_t channel, uint8_t pressure)
  * for middle pitch (0).
  * amidi -p hw:1,0,0 -S 'E0 7F 7F'
  * for maximum pitch (8191).
+ * @param[in] channel   Selected channel (1-16).
+ * @param[in] pitch     Selected pitch (0-16383). It is a 14 bits variable
+ *                      usually received as two 7 bits data bytes (LSB and MSB).
  * @return  Nothing.
  */
 static void
@@ -301,6 +453,9 @@ pitch_change_cb (uint8_t channel, int pitch)
  * @brief   System (0xF) message callback.
  * @par     Description
  * Test: amidi -p hw:1,0,0 -S 'F0 43 10 4C 00 00 7E 00 F7'
+ * @param[out] p_data   Received data pointer (start of data).
+ * @param[in] length    Lenght of received data.
+ * @param[in] last      Optional: true if it is the last chunk received.
  * @return  Nothing.
  */
 static void
@@ -349,6 +504,9 @@ system_exclusive_chunk_cb (const byte * p_data, uint16_t length, bool last)
  * variable until the fps are changed.
  * amidi -p hw:1,0,0 -S 'F1 20'
  * for timecode 00:00:048.00.
+ * @param[in] data  Data byte message which is processed which indicates timing
+ *                  with absolute time code (a single location needs 8 messages
+ *                  in the format MIDI Time Code hours:minutes:seconds:frames).
  * @return  Nothing.
  */
 static void
@@ -413,6 +571,9 @@ time_code_quarter_frame_cb (byte data)
  * @brief   System Common Song Position (0xF2) message callback.
  * @par     Description
  * Test: amidi -p hw:1,0,0 -S 'F2 3 0'
+ * @param[in] beats 14 bits value instruct the sequencer to jump to a new
+ *                  position in the song, expressed as number of sixteenth notes
+ *                  from the start of the song.
  * @return  Nothing.
  */
 static void
@@ -430,6 +591,8 @@ song_position_cb (uint16_t beats)
  * @brief   System Common Song Select (0xF3) message callback.
  * @par     Description
  * Test: amidi -p hw:1,0,0 -S 'F3 12'
+ * @param[in] song_number   Data byte to instruct the sequencer to select a new
+ *                          song.
  * @return  Nothing.
  */
 static void
@@ -565,6 +728,7 @@ system_reset_cb ()
  * @brief   System Real Time generic handler (0xFx) message callback.
  * @par     Description
  * Test: amidi -p hw:1,0,0 -S 'FA'
+ * @param[in] real_time_byte    A byte, if used.
  * @return  Nothing.
  */
 static void
@@ -579,5 +743,10 @@ real_time_system_cb (uint8_t real_time_byte)
 } /* real_time_system_cb */
 #endif /* MIDI_GENERIC_REALTIME */
 
+static void
+midi_note_on_cb (byte channel, byte note, byte velocity)
+{
+
+}	/* midi_note_on_cb() */
 
 /*** End of file ***/
