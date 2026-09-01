@@ -90,7 +90,27 @@ void
 midi_init (uint8_t midi_channel)
 {
     gh_midi.setHandleNoteOn(midi_note_on_cb);
-
+#if 0
+    gh_midi.setHandleNoteOff(midi_note_on_cb);
+    gh_midi.setHandleAfterTouchPoly(midi_note_on_cb);
+    gh_midi.setHandleControlChange(midi_note_on_cb);
+    gh_midi.setHandleProgramChange(midi_note_on_cb);
+    gh_midi.setHandleAfterTouchChannel(midi_note_on_cb);
+    gh_midi.setHandlePitchBend(midi_note_on_cb);
+    gh_midi.setHandleSystemExclusive(midi_note_on_cb);
+    gh_midi.setHandleTimeCodeQuarterFrame(midi_note_on_cb);
+    gh_midi.setHandleSongPosition(midi_note_on_cb);
+    gh_midi.setHandleSongSelect(midi_note_on_cb);
+    gh_midi.setHandleTuneRequest(midi_note_on_cb);
+    gh_midi.setHandleClock(midi_note_on_cb);
+    gh_midi.setHandleStart(midi_note_on_cb);
+    gh_midi.setHandleContinue(midi_note_on_cb);
+    gh_midi.setHandleStop(midi_note_on_cb);
+    gh_midi.setHandleActiveSensing(midi_note_on_cb);
+    gh_midi.setHandleSystemReset(midi_note_on_cb);
+    gh_midi.setHandleTick(midi_note_on_cb);
+    gh_midi.setHandleError(midi_note_on_cb);
+#endif
     gh_midi.begin(midi_channel);
 }   /* midi_init() */
 
@@ -277,7 +297,119 @@ usb_tx_loop (usb_midi_data_t msg)
     }
 
     return ret;
-}
+}   /* usb_tx_loop() */
+
+/**
+ * @brief   MIDI read function (input messages from MIDI).
+ * @par     Description
+ * Reading and saving the MIDI data.
+ * @param[out] p_msg    Pointer to the struct which will contain the type of
+ *                      message and three 32 bits of data. It is populated
+ *                      if a message is detected only.
+ * @return  true if a message has been received, false otherwise.
+ */
+bool
+midi_rx_loop (usb_midi_data_t * p_msg)
+{
+    bool ret(gh_midi.read());
+
+    p_msg->data1 = gh_midi.getData1();
+    p_msg->data2 = gh_midi.getData2();
+
+    uint32_t ch = gh_midi.getInputChannel();
+    Serial.println("Channel= " + String(ch));
+
+    switch (gh_midi.getType())
+    {
+        case midi::NoteOn:
+            p_msg->type = MIDI_NOTE_ON;
+            Serial.println(String("Note On:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
+        break;
+
+        case midi::NoteOff:
+            p_msg->type = MIDI_NOTE_OFF;
+            Serial.println(String("Note Off:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
+        break;
+
+        case midi::Clock:
+            p_msg->type = MIDI_SYS_CLOCK;
+            Serial.println(String("Note Clock:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
+        break;
+
+        case midi::Start:
+            p_msg->type = MIDI_SYS_START;
+            Serial.println(String("Note Start:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
+        break;
+
+        case midi::Tick:
+            Serial.println(String("Note Tick:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
+        break;
+
+        case midi::Continue:
+            Serial.println(String("Note Continue:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
+        break;
+
+        case midi::Stop:
+            Serial.println(String("Note Stop:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
+        break;
+
+        case midi::ActiveSensing:
+            Serial.println(String("Note ActiveSensing:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
+        break;
+
+        case midi::ControlChange:
+            Serial.println(String("Note ControlChange:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
+        break;
+
+        case midi::PitchBend:
+            Serial.println(String("Note PitchBend:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
+        break;
+
+        case midi::AfterTouchPoly:
+            Serial.println(String("Note AfterTouchPoly:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
+        break;
+
+        case midi::AfterTouchChannel:
+            Serial.println(String("Note AfterTouchChannel:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
+        break;
+
+        case midi::ProgramChange:
+            Serial.println(String("Note ProgramChange:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
+        break;
+
+        case midi::SystemExclusive:
+            Serial.println(String("Note SystemExclusive:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
+        break;
+
+        case midi::TimeCodeQuarterFrame:
+            Serial.println(String("Note TimeCodeQuarterFrame:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
+        break;
+
+        case midi::SongPosition:
+            Serial.println(String("Note SongPosition:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
+        break;
+
+        case midi::SongSelect:
+            Serial.println(String("Note SongSelect:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
+        break;
+
+        case midi::TuneRequest:
+            Serial.println(String("Note TuneRequest:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
+        break;
+
+        case midi::SystemReset:
+            Serial.println(String("Note SystemReset:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
+        break;
+
+        case midi::InvalidType:
+            /* Fall through */
+        default:
+            Serial.println("Unsopported message");
+        break;
+    }
+
+    return ret;
+}   /* midi_rx_loop() */
 
 
 /******************************************************************************

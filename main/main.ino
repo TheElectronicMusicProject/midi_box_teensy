@@ -40,6 +40,8 @@
 static const uint8_t g_midi_channel(1);
 static const uint32_t g_led_timer(1000);
 static usb_midi_data_t g_in_msg;
+static usb_midi_data_t g_out_msg;
+
 
 /******************************************************************************
  *                        PRIVATE FUNCTIONS PROTOTYPES                        *
@@ -100,10 +102,6 @@ loop ()
             state = CHECK_FROM_USB;
         break;
 
-        case ERROR:
-            /* Fall through */
-        break;
-
         case CHECK_FROM_USB:
             if (true == usb_rx_loop(&g_in_msg))
             {
@@ -121,119 +119,33 @@ loop ()
         case FORWARD_FROM_USB:
             if (true == usb_tx_loop(g_in_msg))
             {
-
+                state = CHECK_FROM_MIDI;
             }
             else
             {
-
+                state = IDLE;
             }
-            state = IDLE;
         break;
 
         case CHECK_FROM_MIDI:
-#if 0
-            if (true == gh_midi.read())
+            if (true == midi_rx_loop(&g_out_msg))
             {
-                switch (gh_midi.getType())
-                {
-                    case midi::NoteOn:
-                        Serial.println(String("Note On:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
-                    break;
-
-                    case midi::NoteOff:
-                        Serial.println(String("Note Off:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
-                    break;
-
-                    case midi::Clock:
-                        Serial.println(String("Note Clock:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
-                    break;
-
-                    case midi::Start:
-                        Serial.println(String("Note Start:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
-                    break;
-
-                    case midi::Tick:
-                        Serial.println(String("Note Tick:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
-                    break;
-
-                    case midi::Continue:
-                        Serial.println(String("Note Continue:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
-                    break;
-
-                    case midi::Stop:
-                        Serial.println(String("Note Stop:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
-                    break;
-
-                    case midi::ActiveSensing:
-                        Serial.println(String("Note ActiveSensing:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
-                    break;
-
-                    case midi::ControlChange:
-                        Serial.println(String("Note ControlChange:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
-                    break;
-
-                    case midi::PitchBend:
-                        Serial.println(String("Note PitchBend:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
-                    break;
-
-                    case midi::AfterTouchPoly:
-                        Serial.println(String("Note AfterTouchPoly:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
-                    break;
-
-                    case midi::AfterTouchChannel:
-                        Serial.println(String("Note AfterTouchChannel:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
-                    break;
-
-                    case midi::ProgramChange:
-                        Serial.println(String("Note ProgramChange:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
-                    break;
-
-                    case midi::SystemExclusive:
-                        Serial.println(String("Note SystemExclusive:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
-                    break;
-
-                    case midi::TimeCodeQuarterFrame:
-                        Serial.println(String("Note TimeCodeQuarterFrame:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
-                    break;
-
-                    case midi::SongPosition:
-                        Serial.println(String("Note SongPosition:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
-                    break;
-
-                    case midi::SongSelect:
-                        Serial.println(String("Note SongSelect:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
-                    break;
-
-                    case midi::TuneRequest:
-                        Serial.println(String("Note TuneRequest:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
-                    break;
-
-                    case midi::SystemReset:
-                        Serial.println(String("Note SystemReset:  ch= , note=" + String(gh_midi.getData1()) + ", velocity=" + String(gh_midi.getData2())));
-                    break;
-
-                    case midi::InvalidType:
-                        /* Fall through */
-                    default:
-                        Serial.print("Unsopported message \n");
-                    break;
-                }
-
                 state = FORWARD_FROM_MIDI;
             }
             else
             {
                 state = IDLE;
-            
-#endif
+            }
         break;
 
         case FORWARD_FROM_MIDI:
             state = IDLE;
         break;
 
+        case ERROR:
+            /* Fall through */
         default:
-            state = ERROR;
+            state = IDLE;
         break;
     }
 }   /* loop() */

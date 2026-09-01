@@ -43,6 +43,9 @@
  *                      TYPEDEFS (STRUCTS, ENUMS, UNIONS)                     *
  ******************************************************************************/
 
+/**
+ * Type of MIDI message.
+ */
 typedef enum
 {
 	MIDI_NONE,
@@ -67,6 +70,12 @@ typedef enum
 	MIDI_SYS_GENERIC
 } midi_type_t;
 
+/**
+ * Generic MIDI message data handler.
+ * The type id for MIDI message type.
+ * The data1, data2 and data3 variables contains the received message.
+ * The p_data4 is a pointer to the received message in case of MIDI_SYSEX.
+ */
 typedef struct
 {
 	midi_type_t type;
@@ -84,6 +93,7 @@ void midi_init(uint8_t midi_channel);
 uint8_t usb_rx_init();
 bool usb_rx_loop(usb_midi_data_t * p_msg);
 bool usb_tx_loop(usb_midi_data_t msg);
+bool midi_rx_loop(usb_midi_data_t * p_msg);
 
 #endif /* USB_MIDI_H */
 
