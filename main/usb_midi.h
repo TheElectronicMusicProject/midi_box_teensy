@@ -67,6 +67,7 @@ typedef enum
 	MIDI_SYS_STOP,
 	MIDI_SYS_ACTIVE_SENSE,
 	MIDI_SYS_RESET,
+	MIDI_SYS_TICK,
 	MIDI_SYS_GENERIC
 } midi_type_t;
 
@@ -82,7 +83,7 @@ typedef struct
 	uint32_t data1;
 	uint32_t data2;
 	uint32_t data3;
-	uint8_t * p_data4;
+	uint8_t data4[256];
 } usb_midi_data_t;
 
 
@@ -92,8 +93,9 @@ typedef struct
 void midi_init(uint8_t midi_channel);
 uint8_t usb_rx_init();
 bool usb_rx_loop(usb_midi_data_t * p_msg);
-bool usb_tx_loop(usb_midi_data_t msg);
+bool usb_tx_loop(usb_midi_data_t * msg);
 bool midi_rx_loop(usb_midi_data_t * p_msg);
+bool midi_tx_loop(usb_midi_data_t * p_msg);
 
 #endif /* USB_MIDI_H */
 

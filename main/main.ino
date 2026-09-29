@@ -37,7 +37,7 @@
  *                              STATIC VARIABLES                              *
  ******************************************************************************/
 
-static const uint8_t g_midi_channel(1);
+static const uint8_t g_midi_channel(MIDI_CHANNEL_OMNI);
 static const uint32_t g_led_timer(1000);
 static usb_midi_data_t g_in_msg;
 static usb_midi_data_t g_out_msg;
@@ -112,12 +112,12 @@ loop ()
             }
             else
             {
-                state = IDLE;
+                state = CHECK_FROM_MIDI;
             }
         break;
 
         case FORWARD_FROM_USB:
-            if (true == usb_tx_loop(g_in_msg))
+            if (true == usb_tx_loop(&g_in_msg))
             {
                 state = CHECK_FROM_MIDI;
             }
@@ -134,12 +134,19 @@ loop ()
             }
             else
             {
-                state = IDLE;
+                state = CHECK_FROM_USB;
             }
         break;
 
         case FORWARD_FROM_MIDI:
-            state = IDLE;
+            if (true == midi_tx_loop(&g_out_msg))
+            {
+                state = CHECK_FROM_USB;
+            }
+            else
+            {
+                state = IDLE;
+            }
         break;
 
         case ERROR:
