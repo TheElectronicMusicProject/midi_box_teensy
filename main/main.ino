@@ -57,7 +57,8 @@ static usb_midi_data_t g_out_msg;
 /**
  * @brief   Setup function.
  * @par     Description
- * Setting of the Arduino's pins and the serial port.
+ * Setup of MIDI USB and MIDI serial port.
+ * The UART is used for debug.
  * @return  Nothing.
  */
 void
@@ -82,7 +83,10 @@ setup ()
 /**
  * @brief   Loop function.
  * @par     Description
- * Reading and printing the temperature and the humidity.
+ * CHECK_FROM_USB: reads MIDI messages coming from USB.
+ * CHECK_FROM_USB: stored USB MIDI message is forwarded to MIDI peripheral.
+ * CHECK_FROM_MIDI: reads MIDI messages coming from MIDI peripheral.
+ * FORWARD_FROM_MIDI: stored MIDI message is forwarded to USB.
  * @return  Nothing.
  */
 void
@@ -130,6 +134,9 @@ loop ()
         case CHECK_FROM_MIDI:
             if (true == midi_rx_loop(&g_out_msg))
             {
+                digitalWriteFast(LED_BUILTIN, 1);
+                current_count = millis();
+
                 state = FORWARD_FROM_MIDI;
             }
             else

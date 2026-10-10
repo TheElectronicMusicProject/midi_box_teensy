@@ -332,6 +332,15 @@ midi_rx_loop (usb_midi_data_t * p_msg)
 
             p_msg->data1 = gh_midi.getSysExArrayLength();
 
+            if (p_msg->data1 > MIDI_BUFFER_LEN)
+            {
+                Serial.println("ATTENTION! Losing " +
+                               String(p_msg->data1 - MIDI_BUFFER_LEN) +
+                               " bytes!");
+                p_msg->data1 = MIDI_BUFFER_LEN;
+                
+            }
+
             for (; idx < p_msg->data1; ++idx)
             {
                 p_msg->data4[idx] = *(p_sysex_data + idx);

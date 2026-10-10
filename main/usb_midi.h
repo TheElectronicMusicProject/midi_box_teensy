@@ -38,6 +38,7 @@
  *                                   #DEFINE                                  *
  ******************************************************************************/
 
+#define MIDI_BUFFER_LEN		(256)
 
 /******************************************************************************
  *                      TYPEDEFS (STRUCTS, ENUMS, UNIONS)                     *
@@ -83,7 +84,7 @@ typedef struct
 	uint32_t data1;
 	uint32_t data2;
 	uint32_t data3;
-	uint8_t data4[256];
+	uint8_t data4[MIDI_BUFFER_LEN];
 } usb_midi_data_t;
 
 
