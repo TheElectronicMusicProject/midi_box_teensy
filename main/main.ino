@@ -95,14 +95,14 @@ loop ()
     static uint32_t current_count(0);
     static state_machine_t state(IDLE);
 
+    if ((millis() - current_count) >= g_led_timer)
+    {
+        digitalWriteFast(LED_BUILTIN, 0);
+    }
+
     switch (state)
     {
         case IDLE:
-            if ((millis() - current_count) >= g_led_timer)
-            {
-                digitalWriteFast(LED_BUILTIN, 0);
-            }
-
             state = CHECK_FROM_USB;
         break;
 
@@ -127,7 +127,7 @@ loop ()
             }
             else
             {
-                state = IDLE;
+                state = CHECK_FROM_MIDI;
             }
         break;
 
@@ -152,7 +152,7 @@ loop ()
             }
             else
             {
-                state = IDLE;
+                state = CHECK_FROM_USB;
             }
         break;
 
