@@ -482,6 +482,11 @@ usb_tx_loop (usb_midi_data_t * p_msg)
         case MIDI_SYSEX:
             gh_midi.sendSysEx(p_msg->data1,
                               (const byte *) p_msg->data4);
+
+            if (false == p_msg->data1)
+            {
+                ret = false;    // Avoid cleaning the buffer.
+            }
         break;
 
         case MIDI_SYS_QUARTER:
@@ -841,9 +846,18 @@ system_exclusive_chunk_cb (const byte * p_data, uint16_t length, bool last)
     for (uint32_t sysex_idx = 0; sysex_idx < length; ++sysex_idx)
     {
         g_midi_msg.data4[idx] = *(p_data + sysex_idx);
-        Serial.print(*(p_data + idx), HEX);
+        Serial.print(*(p_data + sysex_idx), HEX);
         Serial.print(" ");
         ++idx;
+
+        // Overflow protection.
+        //
+        if (idx >= MIDI_BUFFER_LEN)
+        {
+            last = true;
+            g_midi_msg.data2 = last;
+            break;
+        }
     }
 
 #ifndef MIDI_SHORT_SYSEX
