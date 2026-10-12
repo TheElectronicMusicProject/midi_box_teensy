@@ -22,6 +22,7 @@
 
 #include "usb_midi.h"
 #include <MIDI.h>
+#include <string.h>
 
 
 /******************************************************************************
@@ -32,7 +33,8 @@
  *                              STATIC VARIABLES                              *
  ******************************************************************************/
 
-// Serial1 is RX on 7 (D2) and TX on 8 (D3).
+// Teensy 2.0: Serial1 is RX on 7 (D2) and TX on 8 (D3).
+// Teensy 3.2: Serial1 is RX on 7 (0) and TX on 8 (1).
 //
 static MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, gh_midi);
 static usb_midi_data_t g_midi_msg{MIDI_NONE, 0, 0, 0};
@@ -185,7 +187,7 @@ usb_rx_loop (usb_midi_data_t * p_msg)
                 Serial.print(usb_msg_ch, DEC);
                 Serial.print(", program=");
                 Serial.println(usb_msg_data1, DEC);
-                p_msg->type = MIDI_CONTROL_CHANGE;
+                p_msg->type = MIDI_PROGRAM_CHANGE;
                 p_msg->data1 = usb_msg_ch;
                 p_msg->data2 = usb_msg_data1;
                 p_msg->data3 = 0;
@@ -300,10 +302,10 @@ usb_rx_loop (usb_midi_data_t * p_msg)
             case usbMIDI.SongPosition:
                 Serial.print("Song Position, beat=");
                 Serial.println(usb_msg_data1 + usb_msg_data2 * 128);
-                g_midi_msg.type = MIDI_SYS_SONG_POSITION;
-                g_midi_msg.data1 = usb_msg_data1 + usb_msg_data2 * 128;
-                g_midi_msg.data2 = 0;
-                g_midi_msg.data3 = 0;
+                p_msg->type = MIDI_SYS_SONG_POSITION;
+                p_msg->data1 = usb_msg_data1 + usb_msg_data2 * 128;
+                p_msg->data2 = 0;
+                p_msg->data3 = 0;
             break;
 
             // System Common Song Select (0xF3)
@@ -312,10 +314,10 @@ usb_rx_loop (usb_midi_data_t * p_msg)
             case usbMIDI.SongSelect:
                 Serial.print("Song Select, song=");
                 Serial.println(usb_msg_data1, DEC);
-                g_midi_msg.type = MIDI_SYS_SONG_SELECT;
-                g_midi_msg.data1 = usb_msg_data1;
-                g_midi_msg.data2 = 0;
-                g_midi_msg.data3 = 0;
+                p_msg->type = MIDI_SYS_SONG_SELECT;
+                p_msg->data1 = usb_msg_data1;
+                p_msg->data2 = 0;
+                p_msg->data3 = 0;
             break;
 
             // System Common Tune Request (0xF6)
@@ -323,10 +325,10 @@ usb_rx_loop (usb_midi_data_t * p_msg)
             //
             case usbMIDI.TuneRequest:
                 Serial.println("Tune Request");
-                g_midi_msg.type = MIDI_SYS_TUNE_REQUEST;
-                g_midi_msg.data1 = 0;
-                g_midi_msg.data2 = 0;
-                g_midi_msg.data3 = 0;
+                p_msg->type = MIDI_SYS_TUNE_REQUEST;
+                p_msg->data1 = 0;
+                p_msg->data2 = 0;
+                p_msg->data3 = 0;
             break;
 
             // System Real Time Timing Clock (0xF8)
@@ -334,10 +336,10 @@ usb_rx_loop (usb_midi_data_t * p_msg)
             //
             case usbMIDI.Clock:
                 Serial.println("Clock");
-                g_midi_msg.type = MIDI_SYS_CLOCK;
-                g_midi_msg.data1 = 0;
-                g_midi_msg.data2 = 0;
-                g_midi_msg.data3 = 0;
+                p_msg->type = MIDI_SYS_CLOCK;
+                p_msg->data1 = 0;
+                p_msg->data2 = 0;
+                p_msg->data3 = 0;
             break;
 
             // System Real Time Start (0xFA)
@@ -345,10 +347,10 @@ usb_rx_loop (usb_midi_data_t * p_msg)
             //
             case usbMIDI.Start:
                 Serial.println("Start");
-                g_midi_msg.type = MIDI_SYS_START;
-                g_midi_msg.data1 = 0;
-                g_midi_msg.data2 = 0;
-                g_midi_msg.data3 = 0;
+                p_msg->type = MIDI_SYS_START;
+                p_msg->data1 = 0;
+                p_msg->data2 = 0;
+                p_msg->data3 = 0;
             break;
 
             // System Real Time Continue (0xFB)
@@ -356,10 +358,10 @@ usb_rx_loop (usb_midi_data_t * p_msg)
             //
             case usbMIDI.Continue:
                 Serial.println("Continue");
-                g_midi_msg.type = MIDI_SYS_CONTINUE;
-                g_midi_msg.data1 = 0;
-                g_midi_msg.data2 = 0;
-                g_midi_msg.data3 = 0;
+                p_msg->type = MIDI_SYS_CONTINUE;
+                p_msg->data1 = 0;
+                p_msg->data2 = 0;
+                p_msg->data3 = 0;
             break;
 
             // System Real Time Stop (0xFC)
@@ -367,10 +369,10 @@ usb_rx_loop (usb_midi_data_t * p_msg)
             //
             case usbMIDI.Stop:
                 Serial.println("Stop");
-                g_midi_msg.type = MIDI_SYS_STOP;
-                g_midi_msg.data1 = 0;
-                g_midi_msg.data2 = 0;
-                g_midi_msg.data3 = 0;
+                p_msg->type = MIDI_SYS_STOP;
+                p_msg->data1 = 0;
+                p_msg->data2 = 0;
+                p_msg->data3 = 0;
             break;
 
             // System Real Time Stop (0xFC)
@@ -378,25 +380,35 @@ usb_rx_loop (usb_midi_data_t * p_msg)
             //
             case usbMIDI.ActiveSensing:
                 Serial.println("Active Sensing");
-                g_midi_msg.type = MIDI_SYS_ACTIVE_SENSE;
-                g_midi_msg.data1 = 0;
-                g_midi_msg.data2 = 0;
-                g_midi_msg.data3 = 0;
+                p_msg->type = MIDI_SYS_ACTIVE_SENSE;
+                p_msg->data1 = 0;
+                p_msg->data2 = 0;
+                p_msg->data3 = 0;
             break;
 
             // System Real Time System Reset (0xFF)
             // Test: amidi -p hw:1,0,0 -S 'FF'
             //
-            case usbMIDI.SystemReset: // 0xFF
+            case usbMIDI.SystemReset:
                 Serial.println("System Reset");
-                g_midi_msg.type = MIDI_SYS_RESET;
-                g_midi_msg.data1 = 0;
-                g_midi_msg.data2 = 0;
-                g_midi_msg.data3 = 0;
+                p_msg->type = MIDI_SYS_RESET;
+                p_msg->data1 = 0;
+                p_msg->data2 = 0;
+                p_msg->data3 = 0;
             break;
 
             case usbMIDI.SystemExclusive:
-                /* Fall through */
+                p_msg->type = g_midi_msg.type;
+                p_msg->data1 = g_midi_msg.data1;
+                p_msg->data2 = g_midi_msg.data2;
+                p_msg->data3 = g_midi_msg.data3;
+                
+                if (true == g_midi_msg.data2)
+                {
+                    memcpy(p_msg->data4, g_midi_msg.data4, p_msg->data1);
+                }
+            break;
+
             case usbMIDI.InvalidType:
                 /* Fall through */
             default:
@@ -528,6 +540,15 @@ usb_tx_loop (usb_midi_data_t * p_msg)
         break;
     }
 
+    if (true == ret)
+    {
+        p_msg->type = MIDI_NONE;
+        p_msg->data1 = 0;
+        p_msg->data2 = 0;
+        p_msg->data3 = 0;
+        memset(p_msg->data4, 0, MIDI_BUFFER_LEN);
+    }
+
     return ret;
 }   /* usb_tx_loop() */
 
@@ -570,9 +591,10 @@ midi_rx_loop (usb_midi_data_t * p_msg)
                 
             }
 
-            for (; idx < p_msg->data1; ++idx)
+            for (uint32_t sysex_idx = 0; sysex_idx < p_msg->data1; ++sysex_idx)
             {
-                p_msg->data4[idx] = *(p_sysex_data + idx);
+                p_msg->data4[idx] = *(p_sysex_data + sysex_idx);
+                ++idx;
             }
         }
 
@@ -777,6 +799,11 @@ midi_tx_loop (usb_midi_data_t * p_msg)
     if (true == ret)
     {
         usbMIDI.send_now();
+        p_msg->type = MIDI_NONE;
+        p_msg->data1 = 0;
+        p_msg->data2 = 0;
+        p_msg->data3 = 0;
+        memset(p_msg->data4, 0, MIDI_BUFFER_LEN);
     }
 
     return ret;
@@ -811,11 +838,12 @@ system_exclusive_chunk_cb (const byte * p_data, uint16_t length, bool last)
     g_midi_msg.data2 = last;
     g_midi_msg.data3 = 0;
 
-    for (; idx < length; ++idx)
+    for (uint32_t sysex_idx = 0; sysex_idx < length; ++sysex_idx)
     {
-        g_midi_msg.data4[idx] = *(p_data + idx);
+        g_midi_msg.data4[idx] = *(p_data + sysex_idx);
         Serial.print(*(p_data + idx), HEX);
         Serial.print(" ");
+        ++idx;
     }
 
 #ifndef MIDI_SHORT_SYSEX
